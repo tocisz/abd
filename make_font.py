@@ -1,15 +1,104 @@
 #!/usr/bin/env python
-import fontforge
-import tempfile
-import json
-import svgelements
-import xml.etree.ElementTree as ET
-import unicodedata
 import os
+import argparse
+import xml.etree.ElementTree as ET
+import io
+import vtracer
+import json
+import tempfile
+import fontforge
+import svgelements
+import unicodedata
 from md5counter import StringMD5Counter
+from png2svg import detect_pagesize, crop, round_svg_numbers
+from PIL import Image
 
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
+XLINK_NAMESPACE = "http://www.w3.org/1999/xlink"
 ET.register_namespace("", SVG_NAMESPACE)
+ET.register_namespace("xlink", XLINK_NAMESPACE)
+
+def crop_and_do_shape_stats(directory, svg_dir, crop_top, crop_bottom, limit):
+    # Get a sorted list of PNG files in the directory
+    png_files = sorted([f for f in os.listdir(directory) if f.lower().endswith('.png')])
+
+    if not png_files:
+        print("No PNG files found in the directory.")
+        return
+
+    pagesize = detect_pagesize(os.path.join(directory, png_files[0]))
+    pagesize = (pagesize[0], pagesize[1] - crop_top - crop_bottom)
+    print(f"Detected page size: {pagesize}")
+
+    count = StringMD5Counter()
+    for file_name in png_files:
+        print(file_name)
+        file_path = os.path.join(directory, file_name)
+        try:
+            # Open the image
+            with Image.open(file_path) as img:
+                cropped_img = crop(img, crop_top, crop_bottom)
+                count_glyphs_and_save_svg(file_path, svg_dir, cropped_img, count)
+        except Exception as e:
+            print(f"Error processing {file_name}: {e}")
+    count.dump_to_file(f"{directory}.json")
+
+    to_ttf = set([k for (k,v) in count.md5_count.items() if v >= limit])
+    glyphs = find_glyphs(svg_dir, to_ttf)
+    create_font_from_memory_svgs(glyphs, f"{directory}.ttf")
+
+SPLINE = {
+    "mode":'spline',
+    "corner_threshold":75,
+    "filter_speckle":3
+}
+POLYGON = {
+    "mode":'polygon',
+    "filter_speckle":3
+}
+
+def count_glyphs_and_save_svg(png_file, svg_dir, img, count:StringMD5Counter, mode=POLYGON):
+    img = img.convert("L")
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format="PNG")
+
+    # Save image as SVG file to draw in PDF
+    img_byte_arr.seek(0)
+    svg = vtracer.convert_raw_image_to_svg(img_byte_arr.getvalue(),
+                                             img_format='PNG',
+                                             colormode='binary',
+                                             **mode)
+    svg = round_svg_numbers(svg)
+    input_root = ET.fromstring(svg)
+    for path_element in input_root.findall('.//svg:path', {"svg":SVG_NAMESPACE}):
+        d = path_element.get('d').rstrip()  # Extract path data
+        count.add_string(d)
+    file_name = os.path.splitext(os.path.basename(png_file))[0]
+    svg_file = os.path.join(svg_dir, f"{file_name}.svg")
+    with open(svg_file, "wb") as f:
+        tree = ET.ElementTree(input_root)
+        tree.write(f, encoding="utf-8", xml_declaration=True)
+
+def find_glyphs(directory, to_ttf:set):
+    result = []
+    svg_files = sorted([f for f in os.listdir(directory) if f.lower().endswith('.svg')])
+    for file_name in svg_files:
+        file_path = os.path.join(directory, file_name)
+        try:
+            # Open the image
+            tree = ET.parse(file_path)
+            input_root = tree.getroot()
+            for path_element in input_root.findall('.//svg:path', {"svg":SVG_NAMESPACE}):
+                d = path_element.get('d').rstrip()  # Extract path data
+                h = StringMD5Counter.hash(d)
+                if h in to_ttf:
+                    result.append(d)
+                    to_ttf.remove(h)
+        except Exception as e:
+            print(f"Error processing {file_name}: {e}")
+        if len(to_ttf) == 0:
+            break
+    return result
 
 def create_font_from_memory_svgs(glyphs, output_font_path):
     font = fontforge.font()
@@ -79,19 +168,25 @@ def is_printable(n):
     cat = unicodedata.category(chr(n))
     return cat[0] in ['L','N','P','S']
 
-# Paths seem to be scaled according to viewBox
-# (A and d are roughly the same size, despite viewBox very different)
-# looks like height is assumed to be 1000 and width is scaled proportionally
+def get_svg_dir(directory):
+    return f"{directory}-svg"
 
-# SVG coodrinates 1) X left to right 2) Y top to bottom
+def main():
+    """
+    Main function to make font from screenshots
+    """
+    parser = argparse.ArgumentParser(description="Make font from screenshots stats")
+    parser.add_argument("directory", type=str, default="screenshots", help="Directory with screenshots")
+    parser.add_argument("--crop_top", type=int, default=150, help="Number of pixels to crop from the top of each image.")
+    parser.add_argument("--crop_bottom", type=int, default=150, help="Number of pixels to crop from the bottom of each image.")
+    parser.add_argument("--count_limit", type=int, default=10, help="Include glyphs more frequent than count limit into TTF")
+    args = parser.parse_args()
 
-# OK, one thing left to understand: how to scale letters from font in order for them to have the same size?
+    svg_dir = get_svg_dir(args.directory)
+    # Create directories
+    os.makedirs(svg_dir, exist_ok=True)
 
-# Maybe easiest would be to filter out everything greater than 100 and use font size of 100. In that case all glyphs need to be scaled x10.
-# So viewbox is always "0 0 100 100" ? hmm IDK sample path goes below 0 in Y dimension
-# 1000 ?
+    crop_and_do_shape_stats(args.directory, svg_dir, args.crop_top, args.crop_bottom, args.count_limit)
 
-with open('maslowska-magiczna_rana-glyphs.json', 'r') as f:
-    svg_data_map = json.load(f)
-output_path = "maslowska-magiczna_rana.ttf"
-create_font_from_memory_svgs(svg_data_map, output_path)
+if __name__ == "__main__":
+    main()
