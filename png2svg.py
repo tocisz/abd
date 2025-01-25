@@ -91,7 +91,7 @@ def get_svg_dir(directory):
 
 def main():
     """
-    Main function to take screenshots and convert them into PDF.
+    Main function to take screenshots and convert them into SVG.
     """
     parser = argparse.ArgumentParser(description="Convert screenshots to SVG.")
     parser.add_argument("directory", type=str, default="screenshots", help="Directory with screenshots")

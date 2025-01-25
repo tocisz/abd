@@ -8,8 +8,8 @@ import argparse
 import shutil
 from PIL import Image
 from reportlab.pdfgen import canvas
-from tosvg import process_image_to_svg, detect_pagesize, crop
-from topdfsvg import process_image_to_pdf_page
+from png2svg import process_image_to_svg, detect_pagesize, crop
+from svg2pdf import process_image_to_pdf_page
 
 def adb_wrapper(func):
     """
