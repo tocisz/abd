@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import fontforge
 import tempfile
 import json
@@ -14,6 +15,8 @@ def create_font_from_memory_svgs(glyphs, output_font_path):
     font = fontforge.font()
     font.encoding = "UnicodeFull"
     font.em = 1000
+    font.ascent = 0
+    font.descent = 1000
     code_point = ord(' ')+1
 
     font_dict = dict()
@@ -33,7 +36,7 @@ def create_font_from_memory_svgs(glyphs, output_font_path):
         # Set side bearings and fix direction
         glyph.left_side_bearing = 0
         glyph.right_side_bearing = 0
-        glyph.width = 1000 # assuming height 1000
+        glyph.width = 0 # assuming height 1000
         glyph.correctDirection()
 
         hash = StringMD5Counter.hash(d)

@@ -11,6 +11,7 @@ SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 XLINK_NAMESPACE = "http://www.w3.org/1999/xlink"
 ET.register_namespace("", SVG_NAMESPACE)
 ET.register_namespace("xlink", XLINK_NAMESPACE)
+FONT_ASCENT = 0
 
 # Function to convert SVG images to a PDF
 def deduplicate(directory, output_dir, font_name):
@@ -51,7 +52,7 @@ def deduplicate_svg(in_svg, svg_out_file, font_meta, json_out_file):
         meta = font_meta.get(StringMD5Counter.hash(d))
         if meta:
             # Use font
-            font_uses.append([meta['code_point'],t[0],t[1]])
+            font_uses.append([meta['code_point'],t[0]+meta['bbox'][0],t[1]+FONT_ASCENT])
         elif d not in path_dict:
             # Add to dictionary
             path_dict[d] = [t]
