@@ -26,8 +26,6 @@ def convert_to_pdf(directory, output_pdf):
 
     # Create a PDF
     pdf_canvas = canvas.Canvas(output_pdf, pagesize=pagesize)
-    pdf_canvas.setFont('F',100)
-
     for svg_file in svg_files:
         print(svg_file)
         svg_path = os.path.join(directory, svg_file)

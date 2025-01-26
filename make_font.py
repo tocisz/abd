@@ -42,10 +42,12 @@ def crop_and_do_shape_stats(directory, svg_dir, crop_top, crop_bottom, limit):
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
     count.dump_to_file(f"{directory}.json")
+    find_glyphs_and_create_font(directory, svg_dir, count, limit)
 
+def find_glyphs_and_create_font(directory, svg_dir, count, limit, save_font_meta=True):
     to_ttf = set([k for (k,v) in count.md5_count.items() if v >= limit])
     glyphs = find_glyphs(svg_dir, to_ttf)
-    create_font_from_memory_svgs(glyphs, f"{directory}.ttf")
+    return create_font_from_memory_svgs(glyphs, f"{directory}.ttf", save_font_meta)
 
 SPLINE = {
     "mode":'spline',
@@ -100,7 +102,7 @@ def find_glyphs(directory, to_ttf:set):
             break
     return result
 
-def create_font_from_memory_svgs(glyphs, output_font_path):
+def create_font_from_memory_svgs(glyphs, output_font_path, save_font_meta=True):
     font = fontforge.font()
     font.encoding = "UnicodeFull"
     font.em = 1000
@@ -143,9 +145,11 @@ def create_font_from_memory_svgs(glyphs, output_font_path):
     font.generate(output_font_path)
     print(f"Font saved to {output_font_path}")
     file_name = os.path.splitext(os.path.basename(output_font_path))[0]
-    font_dict_path = os.path.join(os.path.dirname(output_font_path), f"{file_name}-meta.json")
-    with open(font_dict_path, 'w') as f:
-        json.dump(font_dict, f)
+    if save_font_meta:
+        font_dict_path = os.path.join(os.path.dirname(output_font_path), f"{file_name}-meta.json")
+        with open(font_dict_path, 'w') as f:
+            json.dump(font_dict, f)
+    return font_dict
 
 def is_within_range(xmin, ymin, xmax, ymax):
     return xmax-xmin <= 100 and ymax-ymin <= 100

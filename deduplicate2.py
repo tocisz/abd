@@ -45,7 +45,6 @@ def deduplicate_svg(in_svg, svg_out_file, font_meta, json_out_file):
     input_root = ET.fromstring(in_svg)
     width = input_root.get('width')
     height = input_root.get('height')
-    print(f"{width} x {height}")
     for path_element in input_root.findall('.//svg:path', {"svg":SVG_NAMESPACE}):
         d = path_element.get('d').rstrip()  # Extract path data
         t = extract_translate_coordinates(path_element.get('transform'))
