@@ -111,14 +111,15 @@ def create_font_from_memory_svgs(glyphs, output_font_path):
     font_dict = dict()
 
     for d in glyphs:
-        if not is_within_range(d):
+        dbox = svgelements.Path(d).bbox()
+        if not is_within_range(*dbox):
             print(f"Path {d} is too large")
             continue
 
         glyph = font.createChar(code_point)
         # Use temporary file for in-memory SVG
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=True) as temp_svg:
-            make_svg(d, temp_svg)
+            make_svg(d, dbox, temp_svg)
             temp_svg.flush()
             glyph.importOutlines(temp_svg.name)
 
@@ -129,10 +130,9 @@ def create_font_from_memory_svgs(glyphs, output_font_path):
         glyph.correctDirection()
 
         hash = StringMD5Counter.hash(d)
-        bbox = svgelements.Path(d).bbox()
         font_dict[hash] = {
             'code_point': code_point,
-            'bbox': bbox
+            'bbox': dbox
         }
 
         code_point += 1
@@ -147,15 +147,15 @@ def create_font_from_memory_svgs(glyphs, output_font_path):
     with open(font_dict_path, 'w') as f:
         json.dump(font_dict, f)
 
-def is_within_range(d):
-    xmin, ymin, xmax, ymax = svgelements.Path(d).bbox()
-    return xmin >= -50 and xmax <= 50 and ymin >= 0 and ymax <= 100
+def is_within_range(xmin, ymin, xmax, ymax):
+    return xmax-xmin <= 100 and ymax-ymin <= 100
 
-def make_svg(d, svg_file):
+def make_svg(d, dbox, svg_file):
+    xmin, ymin, _, _ = dbox
     svg = ET.Element("svg", attrib={
         "xmlns": SVG_NAMESPACE,
         "version": "1.1",
-        "viewBox": "-50 0 50 100"
+        "viewBox": f"{xmin} {ymin} {xmin+100} {ymin+100}"
     })
     ET.SubElement(svg, "path", attrib={
         "d": d,
