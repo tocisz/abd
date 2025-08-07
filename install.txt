@@ -1,0 +1,4 @@
+vtracer
+reportlab
+Pillow
+# fontforge -- need to install by apt or sth: sudo apt install fontforge python3-fontforge
