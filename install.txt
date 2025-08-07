@@ -1,4 +1,7 @@
 vtracer
 reportlab
 Pillow
+svgelements
+svglib
 # fontforge -- need to install by apt or sth: sudo apt install fontforge python3-fontforge
+# python3 -m venv --install-site-packages ...
