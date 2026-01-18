@@ -17,9 +17,9 @@ Ensure the following system dependencies are installed:
 - `adb` (Android Debug Bridge)
 - `fontforge` (e.g., `sudo apt install fontforge python3-fontforge`)
 
-Install Python dependencies manually as there is no `requirements.txt`. Refer to `install.txt` for a list of packages:
+Install Python dependencies manually using `requirements.txt`:
 ```bash
-pip install vtracer reportlab Pillow svgelements svglib
+pip install -r requirements.txt
 ```
 
 ### Running Scripts
@@ -159,4 +159,4 @@ When writing code that interacts with ADB, use the `@adb_wrapper` decorator (fou
 ## Repository Structure
 - `*.py`: Main utility scripts.
 - `*.sh`: Shell helper scripts.
-- `install.txt`: List of dependencies (informational).
+- `requirements.txt`: List of Python dependencies.
