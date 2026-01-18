@@ -17,7 +17,13 @@ Ensure the following system dependencies are installed:
 - `adb` (Android Debug Bridge)
 - `fontforge` (e.g., `sudo apt install fontforge python3-fontforge`)
 
-Install Python dependencies manually using `requirements.txt`:
+Create a virtual environment with `--system-site-packages` to access the OS-installed `fontforge`:
+```bash
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+```
+
+Install Python dependencies using `requirements.txt`:
 ```bash
 pip install -r requirements.txt
 ```
