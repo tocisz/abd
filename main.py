@@ -12,11 +12,11 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from deduplicate2 import deduplicate_svg
+from deduplicate import deduplicate_svg
 from make_font import count_glyphs_and_save_svg, find_glyphs_and_create_font
 from md5counter import StringMD5Counter
 from png2svg import crop, detect_pagesize
-from svg2pdf2 import process_image_to_pdf_page
+from svg2pdf import process_image_to_pdf_page
 
 
 def adb_wrapper(func):
